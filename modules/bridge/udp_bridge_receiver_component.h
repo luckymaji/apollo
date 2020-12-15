@@ -16,9 +16,9 @@
 #pragma once
 
 #include <netinet/in.h>
-#include <stdlib.h>
 #include <sys/socket.h>
 
+#include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -30,12 +30,12 @@
 #include "cyber/init.h"
 #include "cyber/scheduler/scheduler_factory.h"
 #include "modules/bridge/common/bridge_gflags.h"
-#include "modules/bridge/common/bridge_proto_diserialized_buf.h"
 #include "modules/bridge/common/bridge_header.h"
-#include "modules/bridge/proto/udp_bridge_remote_info.pb.h"
-#include "modules/common/monitor_log/monitor_log_buffer.h"
+#include "modules/bridge/common/bridge_proto_diserialized_buf.h"
 #include "modules/bridge/common/udp_listener.h"
+#include "modules/bridge/proto/udp_bridge_remote_info.pb.h"
 #include "modules/canbus/proto/chassis.pb.h"
+#include "modules/common/monitor_log/monitor_log_buffer.h"
 
 namespace apollo {
 namespace bridge {
@@ -59,19 +59,21 @@ class UDPBridgeReceiverComponent final : public cyber::Component<> {
   void MsgDispatcher();
   bool IsProtoExist(const BridgeHeader &header);
   BridgeProtoDiserializedBuf<T> *CreateBridgeProtoBuf(
-    const BridgeHeader &header);
+      const BridgeHeader &header);
   bool IsTimeout(double time_stamp);
+  bool RemoveInvalidBuf(uint32_t msg_id);
 
  private:
   common::monitor::MonitorLogBuffer monitor_logger_buffer_;
   unsigned int bind_port_ = 0;
   std::string proto_name_ = "";
   std::string topic_name_ = "";
+  bool enable_timeout_ = true;
   std::shared_ptr<cyber::Writer<T>> writer_;
   std::mutex mutex_;
 
   std::shared_ptr<UDPListener<UDPBridgeReceiverComponent<T>>> listener_ =
-    std::make_shared<UDPListener<UDPBridgeReceiverComponent<T>>>();
+      std::make_shared<UDPListener<UDPBridgeReceiverComponent<T>>>();
 
   std::vector<BridgeProtoDiserializedBuf<T> *> proto_list_;
 };

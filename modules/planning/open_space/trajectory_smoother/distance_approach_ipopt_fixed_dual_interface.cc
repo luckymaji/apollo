@@ -524,7 +524,9 @@ void DistanceApproachIPOPTFixedDualInterface::get_optimization_results(
   *dual_l_result = dual_l_result_;
   *dual_n_result = dual_n_result_;
 
-  if (!distance_approach_config_.enable_initial_final_check()) return;
+  if (!distance_approach_config_.enable_initial_final_check()) {
+    return;
+  }
   CHECK_EQ(state_result_.cols(), xWS_.cols());
   CHECK_EQ(state_result_.rows(), xWS_.rows());
   double state_diff_max = 0.0;
@@ -790,8 +792,7 @@ void DistanceApproachIPOPTFixedDualInterface::eval_constraints(int n,
     time_index++;
   }
 
-  ADEBUG << "constraint_index after adding variable box constraints "
-            "updated: "
+  ADEBUG << "constraint_index after adding variable box constraints updated: "
          << constraint_index;
 }
 
@@ -884,7 +885,7 @@ void DistanceApproachIPOPTFixedDualInterface::generate_tapes(int n, int m,
 
   double sig;
   adouble obj_value;
-  double dummy;
+  double dummy = 0.0;
   obj_lam = new double[m + 1];
   get_starting_point(n, 1, &xp[0], 0, &zl[0], &zu[0], m, 0, &lamp[0]);
 

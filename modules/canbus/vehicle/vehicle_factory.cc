@@ -15,15 +15,18 @@
  *****************************************************************************/
 
 #include "modules/canbus/vehicle/vehicle_factory.h"
+
 #include "modules/canbus/proto/vehicle_parameter.pb.h"
+#include "modules/canbus/vehicle/ch/ch_vehicle_factory.h"
+#include "modules/canbus/vehicle/devkit/devkit_vehicle_factory.h"
 #include "modules/canbus/vehicle/ge3/ge3_vehicle_factory.h"
 #include "modules/canbus/vehicle/gem/gem_vehicle_factory.h"
 #include "modules/canbus/vehicle/lexus/lexus_vehicle_factory.h"
 #include "modules/canbus/vehicle/lincoln/lincoln_vehicle_factory.h"
+#include "modules/canbus/vehicle/neolix_edu/neolix_edu_vehicle_factory.h"
 #include "modules/canbus/vehicle/transit/transit_vehicle_factory.h"
 #include "modules/canbus/vehicle/wey/wey_vehicle_factory.h"
 #include "modules/canbus/vehicle/zhongyun/zhongyun_vehicle_factory.h"
-#include "modules/canbus/vehicle/ch/ch_vehicle_factory.h"
 
 namespace apollo {
 namespace canbus {
@@ -50,8 +53,13 @@ void VehicleFactory::RegisterVehicleFactory() {
   Register(apollo::common::ZHONGYUN, []() -> AbstractVehicleFactory * {
     return new ZhongyunVehicleFactory();
   });
-  Register(apollo::common::CH, []() -> AbstractVehicleFactory * {
-    return new ChVehicleFactory();
+  Register(apollo::common::CH,
+           []() -> AbstractVehicleFactory * { return new ChVehicleFactory(); });
+  Register(apollo::common::DKIT, []() -> AbstractVehicleFactory * {
+    return new DevkitVehicleFactory();
+  });
+  Register(apollo::common::NEOLIX, []() -> AbstractVehicleFactory * {
+    return new Neolix_eduVehicleFactory();
   });
 }
 

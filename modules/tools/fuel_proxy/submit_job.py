@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 ###############################################################################
 # Copyright 2019 The Apollo Authors. All Rights Reserved.
@@ -17,6 +17,9 @@
 ###############################################################################
 
 """ Submit Apollo fuel job. """
+import sys
+# Disable python2 paths.
+sys.path = [path for path in sys.path if 'python2' not in path]
 
 import json
 import os
@@ -31,7 +34,7 @@ import requests
 from modules.tools.fuel_proxy.proto.job_config_pb2 import JobConfig
 
 
-flags.DEFINE_string('fuel_proxy', 'https://apollofuel0.bceapp.com:8443',
+flags.DEFINE_string('fuel_proxy', 'https://apollofuel0.bceapp.com:8443/proxy',
                     'Endpoint of Apollo-Fuel proxy.')
 flags.DEFINE_string('job_config', None, 'Apollo fuel job config.')
 

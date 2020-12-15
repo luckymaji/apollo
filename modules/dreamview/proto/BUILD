@@ -11,6 +11,7 @@ proto_library(
     name = "simulation_world_proto_lib",
     srcs = ["simulation_world.proto"],
     deps = [
+        "//modules/canbus/proto:canbus_proto_lib",
         "//modules/common/monitor_log/proto:monitor_log_proto_lib",
         "//modules/common/proto:pnc_point_proto_lib",
         "//modules/perception/proto:perception_proto_lib",
@@ -100,4 +101,16 @@ cc_proto_library(
 proto_library(
     name = "data_collection_table_proto_lib",
     srcs = ["data_collection_table.proto"],
+)
+
+cc_proto_library(
+    name = "camera_update_proto",
+    deps = [
+        ":camera_update_proto_lib",
+    ],
+)
+
+proto_library(
+    name = "camera_update_proto_lib",
+    srcs = ["camera_update.proto"],
 )

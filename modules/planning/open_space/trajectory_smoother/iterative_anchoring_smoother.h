@@ -32,12 +32,14 @@
 #include "modules/planning/common/speed/speed_data.h"
 #include "modules/planning/common/trajectory/discretized_trajectory.h"
 #include "modules/planning/math/curve1d/quintic_polynomial_curve1d.h"
+#include "modules/planning/proto/planning.pb.h"
 
 namespace apollo {
 namespace planning {
 class IterativeAnchoringSmoother {
  public:
-  IterativeAnchoringSmoother();
+  IterativeAnchoringSmoother(
+      const PlannerOpenSpaceConfig& planner_open_space_config);
 
   ~IterativeAnchoringSmoother() = default;
 
@@ -48,14 +50,15 @@ class IterativeAnchoringSmoother {
               DiscretizedTrajectory* discretized_trajectory);
 
  private:
-  void AdjustStartEndHeading(const Eigen::MatrixXd& xWS, DiscretizedPath* path,
-                             std::vector<double>* bounds);
-
-  bool CheckInputValidity(const DiscretizedPath& path_points,
-                          std::vector<size_t>* colliding_point_index);
+  void AdjustStartEndHeading(
+      const Eigen::MatrixXd& xWS,
+      std::vector<std::pair<double, double>>* const point2d);
 
   bool ReAnchoring(const std::vector<size_t>& colliding_point_index,
                    DiscretizedPath* path_points);
+
+  bool GenerateInitialBounds(const DiscretizedPath& path_points,
+                             std::vector<double>* initial_bounds);
 
   bool SmoothPath(const DiscretizedPath& raw_path_points,
                   const std::vector<double>& bounds,
@@ -88,6 +91,9 @@ class IterativeAnchoringSmoother {
 
   bool IsValidPolynomialProfile(const QuinticPolynomialCurve1d& curve);
 
+  // @brief: a helper function on discrete point heading adjustment
+  double CalcHeadings(const DiscretizedPath& path_points, const size_t index);
+
  private:
   // vehicle_param
   double ego_length_ = 0.0;
@@ -97,8 +103,14 @@ class IterativeAnchoringSmoother {
   std::vector<std::vector<common::math::LineSegment2d>>
       obstacles_linesegments_vec_;
 
+  std::vector<size_t> input_colliding_point_index_;
+
+  bool enforce_initial_kappa_ = true;
+
   // gear DRIVE as true and gear REVERSE as false
   bool gear_ = false;
+
+  PlannerOpenSpaceConfig planner_open_space_config_;
 };
 }  // namespace planning
 }  // namespace apollo

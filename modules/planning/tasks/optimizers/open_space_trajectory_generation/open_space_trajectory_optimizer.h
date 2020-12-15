@@ -21,7 +21,6 @@
 #pragma once
 
 #include <memory>
-#include <utility>
 #include <vector>
 
 #include "Eigen/Eigen"
@@ -66,7 +65,7 @@ class OpenSpaceTrajectoryOptimizer {
 
   void RecordDebugInfo(
       const common::TrajectoryPoint& trajectory_stitching_point,
-      const Vec2d& translate_origin, const double rotate_angle,
+      const common::math::Vec2d& translate_origin, const double rotate_angle,
       const std::vector<double>& end_pose, const Eigen::MatrixXd& xWS,
       const Eigen::MatrixXd& uWs, const Eigen::MatrixXd& l_warm_up,
       const Eigen::MatrixXd& n_warm_up, const Eigen::MatrixXd& dual_l_result_ds,
@@ -89,7 +88,7 @@ class OpenSpaceTrajectoryOptimizer {
   bool IsInitPointNearDestination(
       const common::TrajectoryPoint& planning_init_point,
       const std::vector<double>& end_pose, double rotate_angle,
-      const Vec2d& translate_origin);
+      const common::math::Vec2d& translate_origin);
 
   void PathPointNormalizing(double rotate_angle,
                             const common::math::Vec2d& translate_origin,
@@ -160,6 +159,7 @@ class OpenSpaceTrajectoryOptimizer {
   std::unique_ptr<HybridAStar> warm_start_;
   std::unique_ptr<DistanceApproachProblem> distance_approach_;
   std::unique_ptr<DualVariableWarmStartProblem> dual_variable_warm_start_;
+  std::unique_ptr<IterativeAnchoringSmoother> iterative_anchoring_smoother_;
 
   std::vector<common::TrajectoryPoint> stitching_trajectory_;
   DiscretizedTrajectory optimized_trajectory_;

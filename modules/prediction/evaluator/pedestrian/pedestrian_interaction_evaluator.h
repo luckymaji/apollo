@@ -21,7 +21,6 @@
 
 #pragma once
 
-#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -53,8 +52,10 @@ class PedestrianInteractionEvaluator : public Evaluator {
   /**
    * @brief Override Evaluate
    * @param Obstacle pointer
+   * @param Obstacles container
    */
-  bool Evaluate(Obstacle* obstacle_ptr) override;
+  bool Evaluate(Obstacle* obstacle_ptr,
+                ObstaclesContainer* obstacles_container) override;
 
   /**
    * @brief Extract features for learning model's input
@@ -74,9 +75,10 @@ class PedestrianInteractionEvaluator : public Evaluator {
     double timestamp;
     torch::Tensor ct;
     torch::Tensor ht;
+    int frame_count = 0;
   };
 
-  void Clear();
+  // void Clear();
 
   void LoadModel();
 
@@ -84,13 +86,10 @@ class PedestrianInteractionEvaluator : public Evaluator {
 
  private:
   std::unordered_map<int, LSTMState> obstacle_id_lstm_state_map_;
-  std::shared_ptr<torch::jit::script::Module> torch_position_embedding_ptr_ =
-      nullptr;
-  std::shared_ptr<torch::jit::script::Module> torch_social_embedding_ptr_ =
-      nullptr;
-  std::shared_ptr<torch::jit::script::Module> torch_single_lstm_ptr_ = nullptr;
-  std::shared_ptr<torch::jit::script::Module> torch_prediction_layer_ptr_ =
-      nullptr;
+  torch::jit::script::Module torch_position_embedding_;
+  torch::jit::script::Module torch_social_embedding_;
+  torch::jit::script::Module torch_single_lstm_;
+  torch::jit::script::Module torch_prediction_layer_;
   torch::Device device_;
 
   static const int kGridSize = 2;

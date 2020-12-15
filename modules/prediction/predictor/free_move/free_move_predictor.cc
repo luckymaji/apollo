@@ -16,22 +16,29 @@
 
 #include "modules/prediction/predictor/free_move/free_move_predictor.h"
 
-#include <utility>
-
 #include "modules/prediction/common/prediction_gflags.h"
 #include "modules/prediction/common/prediction_util.h"
+#include "modules/prediction/proto/prediction_conf.pb.h"
 
 namespace apollo {
 namespace prediction {
 
-using ::apollo::common::TrajectoryPoint;
-using ::apollo::perception::PerceptionObstacle;
+using apollo::common::TrajectoryPoint;
+using apollo::perception::PerceptionObstacle;
 
-void FreeMovePredictor::Predict(Obstacle* obstacle) {
+FreeMovePredictor::FreeMovePredictor() {
+  predictor_type_ = ObstacleConf::FREE_MOVE_PREDICTOR;
+}
+
+bool FreeMovePredictor::Predict(
+    const ADCTrajectoryContainer* adc_trajectory_container, Obstacle* obstacle,
+    ObstaclesContainer* obstacles_container) {
   Clear();
 
   CHECK_NOTNULL(obstacle);
   CHECK_GT(obstacle->history_size(), 0);
+
+  obstacle->SetPredictorType(predictor_type_);
 
   const Feature& feature = obstacle->latest_feature();
 
@@ -39,7 +46,7 @@ void FreeMovePredictor::Predict(Obstacle* obstacle) {
       !feature.position().has_x() || !feature.position().has_y()) {
     AERROR << "Obstacle [" << obstacle->id()
            << " is missing position or velocity";
-    return;
+    return false;
   }
 
   double prediction_total_time = FLAGS_prediction_trajectory_time_length;
@@ -64,8 +71,8 @@ void FreeMovePredictor::Predict(Obstacle* obstacle) {
     SetEqualProbability(1.0, 0, obstacle);
   } else {
     for (int i = 0; i < feature.predicted_trajectory_size(); ++i) {
-      Trajectory* trajectory = obstacle->mutable_latest_feature()
-                                       ->mutable_predicted_trajectory(i);
+      Trajectory* trajectory =
+          obstacle->mutable_latest_feature()->mutable_predicted_trajectory(i);
       int traj_size = trajectory->trajectory_point_size();
       if (traj_size == 0) {
         AERROR << "Empty predicted trajectory found";
@@ -93,6 +100,7 @@ void FreeMovePredictor::Predict(Obstacle* obstacle) {
       }
     }
   }
+  return true;
 }
 
 void FreeMovePredictor::DrawFreeMoveTrajectoryPoints(

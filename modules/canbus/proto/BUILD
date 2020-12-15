@@ -11,15 +11,17 @@ proto_library(
     name = "canbus_proto_lib",
     srcs = [
         "canbus_conf.proto",
+        "ch.proto",
         "chassis.proto",
         "chassis_detail.proto",
+        "devkit.proto",
         "ge3.proto",
         "lexus.proto",
         "transit.proto",
         "vehicle_parameter.proto",
         "wey.proto",
         "zhongyun.proto",
-        "ch.proto",
+        "neolix_edu.proto",
     ],
     deps = [
         "//modules/common/configs/proto:vehicle_config_proto_lib",

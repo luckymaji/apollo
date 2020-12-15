@@ -54,13 +54,12 @@ class OpenSpaceTrajectoryPartition : public TrajectoryOptimizer {
   bool EncodeTrajectory(const DiscretizedTrajectory& trajectory,
                         std::string* const encoding);
 
-  bool CheckTrajTraversed(
-      const std::string& trajectory_encoding_to_check) const;
+  bool CheckTrajTraversed(const std::string& trajectory_encoding_to_check);
 
   void UpdateTrajHistory(const std::string& chosen_trajectory_encoding);
 
   void PartitionTrajectory(const DiscretizedTrajectory& trajectory,
-                           std::vector<TrajGearPair>* paritioned_trajectories);
+                           std::vector<TrajGearPair>* partitioned_trajectories);
 
   void LoadTrajectoryPoint(const common::TrajectoryPoint& trajectory_point,
                            const canbus::Chassis::GearPosition& gear,
@@ -76,12 +75,13 @@ class OpenSpaceTrajectoryPartition : public TrajectoryOptimizer {
                                size_t* current_trajectory_point_index);
 
   bool UseFailSafeSearch(
-      const std::vector<TrajGearPair>& paritioned_trajectories,
+      const std::vector<TrajGearPair>& partitioned_trajectories,
+      const std::vector<std::string>& trajectories_encodings,
       size_t* current_trajectory_index, size_t* current_trajectory_point_index);
 
   bool InsertGearShiftTrajectory(
       const bool flag_change_to_next, const size_t current_trajectory_index,
-      const std::vector<TrajGearPair>& paritioned_trajectories,
+      const std::vector<TrajGearPair>& partitioned_trajectories,
       TrajGearPair* gear_switch_idle_time_trajectory);
 
   void GenerateGearShiftTrajectory(
@@ -89,11 +89,11 @@ class OpenSpaceTrajectoryPartition : public TrajectoryOptimizer {
       TrajGearPair* gear_switch_idle_time_trajectory);
 
   void AdjustRelativeTimeAndS(
-      const std::vector<TrajGearPair>& paritioned_trajectories,
+      const std::vector<TrajGearPair>& partitioned_trajectories,
       const size_t current_trajectory_index,
       const size_t closest_trajectory_point_index,
       DiscretizedTrajectory* stitched_trajectory_result,
-      TrajGearPair* current_paritioned_trajectory);
+      TrajGearPair* current_partitioned_trajectory);
 
  private:
   OpenSpaceTrajectoryPartitionConfig open_space_trajectory_partition_config_;
@@ -104,6 +104,7 @@ class OpenSpaceTrajectoryPartition : public TrajectoryOptimizer {
   double lateral_offset_to_midpoint_ = 0.0;
   double longitudinal_offset_to_midpoint_ = 0.0;
   double vehicle_box_iou_threshold_to_midpoint_ = 0.0;
+  double linear_velocity_threshold_on_ego_ = 0.0;
 
   common::VehicleParam vehicle_param_;
   double ego_length_ = 0.0;
@@ -114,6 +115,7 @@ class OpenSpaceTrajectoryPartition : public TrajectoryOptimizer {
   double ego_theta_ = 0.0;
   double ego_x_ = 0.0;
   double ego_y_ = 0.0;
+  double ego_v_ = 0.0;
   common::math::Box2d ego_box_;
   double vehicle_moving_direction_ = 0.0;
 

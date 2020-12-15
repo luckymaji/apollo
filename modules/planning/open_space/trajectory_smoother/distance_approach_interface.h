@@ -20,9 +20,6 @@
 
 #pragma once
 #include <omp.h>
-#include <algorithm>
-#include <limits>
-#include <vector>
 #include "Eigen/Dense"
 #include "IpTNLP.hpp"
 #include "IpTypes.hpp"
@@ -51,6 +48,8 @@ namespace planning {
 
 class DistanceApproachInterface : public Ipopt::TNLP {
  public:
+  virtual ~DistanceApproachInterface() = default;
+
   /** Method to return some info about the nlp */
   virtual bool get_nlp_info(int& n, int& m, int& nnz_jac_g,    // NOLINT
                             int& nnz_h_lag,                    // NOLINT

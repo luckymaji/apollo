@@ -26,7 +26,8 @@ namespace apollo {
 namespace planning {
 
 using apollo::common::ErrorCode;
-using apollo::common::VehicleState;
+using apollo::common::Status;
+using apollo::common::math::Vec2d;
 
 OpenSpaceTrajectoryOptimizer::OpenSpaceTrajectoryOptimizer(
     const OpenSpaceTrajectoryOptimizerConfig& config)
@@ -44,16 +45,19 @@ OpenSpaceTrajectoryOptimizer::OpenSpaceTrajectoryOptimizer(
   // Initialize distance approach trajectory smootherclass pointer
   distance_approach_.reset(
       new DistanceApproachProblem(config.planner_open_space_config()));
+
+  // Initialize iterative anchoring smoother config class pointer
+  iterative_anchoring_smoother_.reset(
+      new IterativeAnchoringSmoother(config.planner_open_space_config()));
 }
 
-common::Status OpenSpaceTrajectoryOptimizer::Plan(
+Status OpenSpaceTrajectoryOptimizer::Plan(
     const std::vector<common::TrajectoryPoint>& stitching_trajectory,
     const std::vector<double>& end_pose, const std::vector<double>& XYbounds,
-    double rotate_angle, const common::math::Vec2d& translate_origin,
+    double rotate_angle, const Vec2d& translate_origin,
     const Eigen::MatrixXi& obstacles_edges_num,
     const Eigen::MatrixXd& obstacles_A, const Eigen::MatrixXd& obstacles_b,
-    const std::vector<std::vector<common::math::Vec2d>>&
-        obstacles_vertices_vec) {
+    const std::vector<std::vector<Vec2d>>& obstacles_vertices_vec) {
   if (XYbounds.empty() || end_pose.empty() || obstacles_edges_num.cols() == 0 ||
       obstacles_A.cols() == 0 || obstacles_b.cols() == 0) {
     ADEBUG << "OpenSpaceTrajectoryOptimizer input data not ready";
@@ -84,6 +88,10 @@ common::Status OpenSpaceTrajectoryOptimizer::Plan(
   double init_x = trajectory_stitching_point.path_point().x();
   double init_y = trajectory_stitching_point.path_point().y();
   double init_phi = trajectory_stitching_point.path_point().theta();
+  ADEBUG << "origin x: " << std::setprecision(9) << translate_origin.x();
+  ADEBUG << "origin y: " << std::setprecision(9) << translate_origin.y();
+  ADEBUG << "init_x: " << std::setprecision(9) << init_x;
+  ADEBUG << "init_y: " << std::setprecision(9) << init_y;
 
   // Rotate and scale the state
   PathPointNormalizing(rotate_angle, translate_origin, &init_x, &init_y,
@@ -262,8 +270,7 @@ void OpenSpaceTrajectoryOptimizer::RecordDebugInfo(
     const Eigen::MatrixXd& state_result_ds,
     const Eigen::MatrixXd& control_result_ds,
     const Eigen::MatrixXd& time_result_ds, const std::vector<double>& XYbounds,
-    const std::vector<std::vector<common::math::Vec2d>>&
-        obstacles_vertices_vec) {
+    const std::vector<std::vector<Vec2d>>& obstacles_vertices_vec) {
   // load information about trajectory stitching point
 
   open_space_debug_.mutable_trajectory_stitching_point()->CopyFrom(
@@ -412,8 +419,8 @@ bool OpenSpaceTrajectoryOptimizer::IsInitPointNearDestination(
 }
 
 void OpenSpaceTrajectoryOptimizer::PathPointNormalizing(
-    double rotate_angle, const common::math::Vec2d& translate_origin, double* x,
-    double* y, double* phi) {
+    double rotate_angle, const Vec2d& translate_origin, double* x, double* y,
+    double* phi) {
   *x -= translate_origin.x();
   *y -= translate_origin.y();
   double tmp_x = *x;
@@ -423,8 +430,8 @@ void OpenSpaceTrajectoryOptimizer::PathPointNormalizing(
 }
 
 void OpenSpaceTrajectoryOptimizer::PathPointDeNormalizing(
-    double rotate_angle, const common::math::Vec2d& translate_origin, double* x,
-    double* y, double* phi) {
+    double rotate_angle, const Vec2d& translate_origin, double* x, double* y,
+    double* phi) {
   double tmp_x = *x;
   *x = (*x) * std::cos(rotate_angle) - (*y) * std::sin(rotate_angle);
   *y = tmp_x * std::sin(rotate_angle) + (*y) * std::cos(rotate_angle);
@@ -447,14 +454,14 @@ void OpenSpaceTrajectoryOptimizer::LoadTrajectory(
   CHECK_EQ(states_size, controls_size + 1);
   double relative_time = 0.0;
   double relative_s = 0.0;
-  common::math::Vec2d last_path_point(state_result(0, 0), state_result(1, 0));
+  Vec2d last_path_point(state_result(0, 0), state_result(1, 0));
   for (size_t i = 0; i < states_size; ++i) {
     common::TrajectoryPoint point;
     point.mutable_path_point()->set_x(state_result(0, i));
     point.mutable_path_point()->set_y(state_result(1, i));
     point.mutable_path_point()->set_theta(state_result(2, i));
     point.set_v(state_result(3, i));
-    common::math::Vec2d cur_path_point(state_result(0, i), state_result(1, i));
+    Vec2d cur_path_point(state_result(0, i), state_result(1, i));
     relative_s += cur_path_point.DistanceTo(last_path_point);
     point.mutable_path_point()->set_s(relative_s);
     // TODO(Jinyun): Evaluate how to set end states control input
@@ -501,7 +508,7 @@ bool OpenSpaceTrajectoryOptimizer::GenerateDistanceApproachTraj(
     const std::vector<double>& XYbounds,
     const Eigen::MatrixXi& obstacles_edges_num,
     const Eigen::MatrixXd& obstacles_A, const Eigen::MatrixXd& obstacles_b,
-    const std::vector<std::vector<common::math::Vec2d>>& obstacles_vertices_vec,
+    const std::vector<std::vector<Vec2d>>& obstacles_vertices_vec,
     const Eigen::MatrixXd& last_time_u, const double init_v,
     Eigen::MatrixXd* state_result_ds, Eigen::MatrixXd* control_result_ds,
     Eigen::MatrixXd* time_result_ds, Eigen::MatrixXd* l_warm_up,
@@ -530,11 +537,14 @@ bool OpenSpaceTrajectoryOptimizer::GenerateDistanceApproachTraj(
   // Get timestep delta t
   double ts = config_.planner_open_space_config().delta_t();
 
+  // slack_warm_up, temp usage
+  Eigen::MatrixXd s_warm_up = Eigen::MatrixXd::Zero(obstacles_num, horizon + 1);
+
   // Dual variable warm start for distance approach problem
   if (FLAGS_use_dual_variable_warm_start) {
     if (dual_variable_warm_start_->Solve(
             horizon, ts, ego, obstacles_num, obstacles_edges_num, obstacles_A,
-            obstacles_b, xWS, l_warm_up, n_warm_up)) {
+            obstacles_b, xWS, l_warm_up, n_warm_up, &s_warm_up)) {
       ADEBUG << "Dual variable problem solved successfully!";
     } else {
       ADEBUG << "Dual variable problem failed to solve";
@@ -549,9 +559,9 @@ bool OpenSpaceTrajectoryOptimizer::GenerateDistanceApproachTraj(
   // Distance approach trajectory smoothing
   if (distance_approach_->Solve(
           x0, xF, last_time_u, horizon, ts, ego, xWS, uWS, *l_warm_up,
-          *n_warm_up, XYbounds, obstacles_num, obstacles_edges_num, obstacles_A,
-          obstacles_b, state_result_ds, control_result_ds, time_result_ds,
-          dual_l_result_ds, dual_n_result_ds)) {
+          *n_warm_up, s_warm_up, XYbounds, obstacles_num, obstacles_edges_num,
+          obstacles_A, obstacles_b, state_result_ds, control_result_ds,
+          time_result_ds, dual_l_result_ds, dual_n_result_ds)) {
     ADEBUG << "Distance approach problem solved successfully!";
   } else {
     ADEBUG << "Distance approach problem failed to solve";
@@ -795,12 +805,11 @@ void OpenSpaceTrajectoryOptimizer::CombineTrajectories(
 
 bool OpenSpaceTrajectoryOptimizer::GenerateDecoupledTraj(
     const Eigen::MatrixXd& xWS, const double init_a, const double init_v,
-    const std::vector<std::vector<common::math::Vec2d>>& obstacles_vertices_vec,
+    const std::vector<std::vector<Vec2d>>& obstacles_vertices_vec,
     Eigen::MatrixXd* state_result_dc, Eigen::MatrixXd* control_result_dc,
     Eigen::MatrixXd* time_result_dc) {
-  IterativeAnchoringSmoother iterative_anchoring_smoother;
   DiscretizedTrajectory smoothed_trajectory;
-  if (!iterative_anchoring_smoother.Smooth(
+  if (!iterative_anchoring_smoother_->Smooth(
           xWS, init_a, init_v, obstacles_vertices_vec, &smoothed_trajectory)) {
     return false;
   }

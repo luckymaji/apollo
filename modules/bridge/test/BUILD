@@ -2,13 +2,13 @@ load("//tools:cpplint.bzl", "cpplint")
 
 package(default_visibility = ["//visibility:public"])
 
-
 cc_binary(
     name = "bridge_receiver_test",
     srcs = ["bridge_receiver_test.cc"],
     deps = [
         "//cyber",
-        "//cyber/examples/proto:examples_cc_proto",
+        "//modules/bridge:udp_bridge",
+        "//modules/bridge/common:udp_listener",
     ],
 )
 

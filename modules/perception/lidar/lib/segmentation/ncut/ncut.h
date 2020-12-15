@@ -15,11 +15,10 @@
  *****************************************************************************/
 #pragma once
 
-#include <math.h>
-#include <stdlib.h>
 #include <opencv2/opencv.hpp>
-#include <Eigen/Core>
 
+#include <cmath>
+#include <cstdlib>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -27,8 +26,11 @@
 #include <tuple>
 #include <vector>
 
+#include "Eigen/Core"
+
 #include "modules/perception/lidar/lib/segmentation/ncut/common/flood_fill.h"
 #include "modules/perception/lidar/lib/segmentation/ncut/common/lr_classifier.h"
+#include "modules/perception/lidar/lib/segmentation/ncut/proto/ncut_config.pb.h"
 #include "modules/perception/lidar/lib/segmentation/ncut/proto/ncut_param.pb.h"
 
 namespace apollo {
@@ -39,7 +41,7 @@ class NCut {
  public:
   NCut();
   ~NCut();
-  bool Init();
+  bool Init(const NCutParam& param);
 
   int NumSegments() const { return static_cast<int>(_segment_pids.size()); }
   std::string GetSegmentLabel(int sid) const { return _segment_labels[sid]; }
@@ -88,7 +90,7 @@ class NCut {
   double _sigma_space;
   double _connect_radius;
   int _num_cuts;
-  double _ncuts_stop_threshold;
+  float _ncuts_stop_threshold;
   double _ncuts_enable_classifier_threshold;
   // component (cluster) information
   std::vector<std::vector<int>> _cluster_points;
@@ -116,7 +118,7 @@ class NCut {
 
   void PrecomputeAllSkeletonAndBbox();
 
-  bool Configure(const std::string& ncut_param_file);
+  bool Configure(const NCutParam& ncut_param_);
 
   void SuperPixelsFloodFill(base::PointFCloudConstPtr cloud, float radius,
                             float cell_size,

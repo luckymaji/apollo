@@ -19,13 +19,7 @@
 # Fail on first error.
 set -e
 
-USER_NAME=apollo
+apt-get -y update && \
+    apt-get -y install sudo
 
-adduser --disabled-password --gecos '' ${USER_NAME}
-usermod -aG sudo ${USER_NAME}
-echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
-
-echo """
-ulimit -c unlimited
-source /apollo/scripts/apollo_base.sh
-""" >> /home/${USER_NAME}/.bashrc
+sed -i /etc/sudoers -re 's/^%sudo.*/%sudo ALL=(ALL:ALL) NOPASSWD: ALL/g'

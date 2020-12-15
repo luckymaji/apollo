@@ -7,8 +7,12 @@ data_files {
   dest_path: "/apollo/modules/control/conf/control_conf.pb.txt"
 }
 data_files {
-  source_path: "cancard_params/canbus_conf.pb.txt"
-  dest_path: "/apollo/modules/canbus/conf/canbus_conf.pb.txt"
+  source_path: "cancard_params"
+  dest_path: "/apollo/modules/canbus/conf"
+}
+data_files {
+  source_path: "dreamview_conf/data_collection_table.pb.txt"
+  dest_path: "/apollo/modules/dreamview/conf/data_collection_table.pb.txt"
 }
 data_files {
   source_path: "navigation_lincoln.pb.txt"
@@ -20,7 +24,7 @@ data_files {
 }
 data_files {
   source_path: "velodyne_params"
-  dest_path: "/apollo/modules/drivers/velodyne/params"
+  dest_path: "/apollo/modules/drivers/lidar/velodyne/params"
 }
 data_files {
   source_path: "velodyne_params"
@@ -55,12 +59,16 @@ data_files {
   dest_path: "/apollo/modules/drivers/radar/conti_radar/conf"
 }
 data_files {
+  source_path: "radar_dag"
+  dest_path: "/apollo/modules/drivers/radar/conti_radar/dag"
+}
+data_files {
   source_path: "gnss_conf"
   dest_path: "/apollo/modules/drivers/gnss/conf"
 }
 data_files {
   source_path: "velodyne_conf"
-  dest_path: "/apollo/modules/drivers/velodyne/conf"
+  dest_path: "/apollo/modules/drivers/lidar/velodyne/conf"
 }
 data_files {
   source_path: "camera_conf"
@@ -81,4 +89,92 @@ data_files {
 data_files {
   source_path: "cyber_conf"
   dest_path: "/apollo/cyber/conf"
+}
+data_files {
+  source_path: "teleop_conf/teleop/daemon_service_conf.pb.txt"
+  dest_path: "/apollo/modules/teleop/teleop/daemon_service_conf.pb.txt"
+}
+data_files {
+  source_path: "teleop_conf/voip/voip_decoder_conf.pb.txt"
+  dest_path: "/apollo/modules/teleop/voip/conf/voip_decoder_conf.pb.txt"
+}
+data_files {
+  source_path: "teleop_conf/voip/voip_encoder_conf.pb.txt"
+  dest_path: "/apollo/modules/teleop/voip/conf/voip_encoder_conf.pb.txt"
+}
+data_files {
+  source_path: "teleop_conf/teleop/daemon_service_conf.pb.txt"
+  dest_path: "/apollo/modules/teleop/teleop/conf/daemon_service_conf.pb.txt"
+}
+data_files {
+  source_path: "teleop_conf/network/modem_monitor_node_conf.pb.txt"
+  dest_path: "/apollo/modules/teleop/network/conf/modem_monitor_node_conf.pb.txt"
+}
+data_files {
+  source_path: "teleop_conf/network/modem_router_node_conf.pb.txt"
+  dest_path: "/apollo/modules/teleop/network/conf/modem_router_node_conf.pb.txt"
+}
+data_files {
+  source_path: "teleop_conf/network/initial_routes_and_filters.pb.txt"
+  dest_path: "/apollo/modules/teleop/network/conf/initial_routes_and_filters.pb.txt"
+}
+data_files {
+  source_path: "transform_conf/static_transform_conf.pb.txt"
+  dest_path: "/apollo/modules/transform/conf/static_transform_conf.pb.txt"
+}
+data_files {
+  source_path: "planning_conf"
+  dest_path: "/apollo/modules/planning/conf"
+}
+data_files {
+  source_path: "localization_conf"
+  dest_path: "/apollo/modules/localization/conf"
+}
+data_files {
+  source_path: "localization_dag"
+  dest_path: "/apollo/modules/localization/dag"
+}
+data_files {
+  source_path: "perception_dag"
+  dest_path: "/apollo/modules/perception/production/dag"
+}
+data_files {
+  source_path: "perception_launch"
+  dest_path: "/apollo/modules/perception/production/launch"
+}
+data_files {
+  source_path: "perception_conf"
+  dest_path: "/apollo/modules/perception/production/conf/perception"
+}
+data_files {
+  source_path: "lidar_dag"
+  dest_path: "/apollo/modules/drivers/lidar/dag"
+}
+data_files {
+  source_path: "lidar_conf"
+  dest_path: "/apollo/modules/drivers/lidar/conf"
+}
+data_files {
+  source_path: "lidar_params"
+  dest_path: "/apollo/modules/drivers/lidar/velodyne/params"
+}
+data_files {
+  source_path: "lidar_params"
+  dest_path: "/apollo/modules/localization/msf/params/velodyne_params"
+}
+data_files {
+  source_path: "lidar_params"
+  dest_path: "/apollo/modules/perception/data/params"
+}
+data_files {
+  source_path: "perception_conf/pointcloud_preprocessor.conf"
+  dest_path: "/apollo/modules/perception/production/data/perception/lidar/models/pointcloud_preprocessor/velodyne128/pointcloud_preprocessor.conf"
+}
+data_files {
+  source_path: "perception_conf/fusion_component_conf.pb.txt"
+  dest_path: "/apollo/modules/perception/production/conf/perception/fusion/fusion_component_conf.pb.txt"
+}
+data_files {
+  source_path: "perception_conf/perception_common.flag"
+  dest_path: "/apollo/modules/perception/production/conf/perception/perception_common.flag"
 }

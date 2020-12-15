@@ -13,9 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *****************************************************************************/
-#include <gtest/gtest.h>
-#include <yaml-cpp/yaml.h>
+
 #include <opencv2/opencv.hpp>
+
+#include "gtest/gtest.h"
+#include "yaml-cpp/yaml.h"
 
 #include "cyber/common/file.h"
 #include "cyber/common/log.h"
@@ -186,12 +188,15 @@ TEST(darkSCNNLanePostprocessor, camera_lane_postprocessor_point_test) {
 
   intrinsic_map["onsemi_obstacle"] = frame.camera_k_matrix;
   extrinsic_map["onsemi_obstacle"] = ex_camera2lidar;
+  std::vector<std::string> camera_names;
+  camera_names[0] = visual_camera;
 
   EXPECT_TRUE(visualize_.Init_all_info_single_camera(
-      visual_camera, intrinsic_map, extrinsic_map, ex_lidar2imu, pitch_adj,
-      yaw_adj, roll_adj, calibration_service_init_options.image_height,
+      camera_names, visual_camera, intrinsic_map, extrinsic_map, ex_lidar2imu,
+      pitch_adj, yaw_adj, roll_adj,
+      calibration_service_init_options.image_height,
       calibration_service_init_options.image_width));
-  homography_im2car_ = visualize_.homography_im2car();
+  homography_im2car_ = visualize_.homography_im2car(visual_camera);
   lane_postprocessor->SetIm2CarHomography(homography_im2car_);
   AINFO << "Initilize visualizer finished!";
 

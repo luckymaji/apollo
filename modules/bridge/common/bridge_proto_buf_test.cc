@@ -14,8 +14,8 @@
  * limitations under the License.
  *****************************************************************************/
 
-#include "modules/bridge/common/bridge_proto_serialized_buf.h"
 #include "modules/bridge/common/bridge_proto_diserialized_buf.h"
+#include "modules/bridge/common/bridge_proto_serialized_buf.h"
 
 #include "modules/planning/proto/planning.pb.h"
 
@@ -46,20 +46,20 @@ TEST(BridgeProtoBufTest, Simple) {
   size_t frame_count = proto_buf.GetSerializedBufCount();
   for (size_t i = 0; i < frame_count; i++) {
     char header_flag[sizeof(BRIDGE_HEADER_FLAG) + 1] = {0};
-    size_t offset = 0;
+    bsize offset = 0;
     memcpy(header_flag, proto_buf.GetSerializedBuf(i), HEADER_FLAG_SIZE);
     EXPECT_STREQ(header_flag, BRIDGE_HEADER_FLAG);
-    offset += sizeof(BRIDGE_HEADER_FLAG) + 1;
+    offset += static_cast<bsize>(sizeof(BRIDGE_HEADER_FLAG) + 1);
 
-    char header_size_buf[sizeof(size_t) + 1] = {0};
+    char header_size_buf[sizeof(hsize) + 1] = {0};
     const char *cursor = proto_buf.GetSerializedBuf(i) + offset;
-    memcpy(header_size_buf, cursor, sizeof(size_t));
-    size_t header_size = *(reinterpret_cast<size_t*>(header_size_buf));
-    EXPECT_EQ(header_size, 236);
-    offset += sizeof(size_t) + 1;
+    memcpy(header_size_buf, cursor, sizeof(hsize));
+    hsize header_size = *(reinterpret_cast<hsize *>(header_size_buf));
+    EXPECT_EQ(header_size, 184);
+    offset += static_cast<bsize>(sizeof(hsize) + 1);
 
     BridgeHeader header;
-    size_t buf_size = header_size - offset;
+    bsize buf_size = header_size - offset;
     cursor = proto_buf.GetSerializedBuf(i) + offset;
     EXPECT_TRUE(header.Diserialize(cursor, buf_size));
     EXPECT_STREQ(header.GetMsgName().c_str(), "planning::ADCTrajectory");
@@ -79,17 +79,17 @@ TEST(BridgeProtoBufTest, Simple) {
   auto pb_msg = std::make_shared<planning::ADCTrajectory>();
   proto_recv_buf.Diserialized(pb_msg);
   EXPECT_EQ(pb_msg->header().sequence_num(),
-    adc_trajectory->header().sequence_num());
+            adc_trajectory->header().sequence_num());
   EXPECT_EQ(pb_msg->trajectory_point_size(),
-    adc_trajectory->trajectory_point_size());
+            adc_trajectory->trajectory_point_size());
 
   int traj_size = adc_trajectory->trajectory_point_size();
   EXPECT_EQ(traj_size, 100);
   for (int i = 0; i < traj_size; ++i) {
     EXPECT_EQ(adc_trajectory->trajectory_point(i).path_point().x(),
-      pb_msg->trajectory_point(i).path_point().x());
+              pb_msg->trajectory_point(i).path_point().x());
     EXPECT_EQ(adc_trajectory->trajectory_point(i).path_point().y(),
-      pb_msg->trajectory_point(i).path_point().x());
+              pb_msg->trajectory_point(i).path_point().x());
   }
 }
 

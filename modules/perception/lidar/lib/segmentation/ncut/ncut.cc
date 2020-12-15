@@ -49,9 +49,8 @@ using Eigen::MatrixXf;
 NCut::NCut() {}
 NCut::~NCut() { ADEBUG << "NCut destructor done"; }
 
-bool NCut::Init() {
-  std::string file("");
-  if (!Configure(file)) {
+bool NCut::Init(const NCutParam &param) {
+  if (!Configure(param)) {
     AERROR << "failed to load ncut config.";
     return false;
   }
@@ -64,12 +63,7 @@ bool NCut::Init() {
   return true;
 }
 
-bool NCut::Configure(const std::string &param_file) {
-  NCutParam ncut_param_;
-  // get cnnseg params
-  CHECK(GetProtoFromFile(param_file, &ncut_param_))
-      << "Failed to parse CNNSegParam config file." << param_file;
-
+bool NCut::Configure(const NCutParam &ncut_param_) {
   _grid_radius = ncut_param_.grid_radius();
   _connect_radius = ncut_param_.connect_radius();
   _super_pixel_cell_size = ncut_param_.super_pixel_cell_size();
@@ -85,11 +79,15 @@ bool NCut::Configure(const std::string &param_file) {
   _felzenszwalb_sigma = ncut_param_.felzenszwalb_sigma();
   _felzenszwalb_k = ncut_param_.felzenszwalb_k();
   _felzenszwalb_min_size = ncut_param_.felzenszwalb_min_size();
+
+  AINFO << "NCut Parameters" << ncut_param_.DebugString();
   return true;
 }
 
 void NCut::Segment(base::PointFCloudConstPtr cloud) {
-  // double start_t = omp_get_wtime();
+#ifdef DEBUG_NCUT
+  double start_t = omp_get_wtime();
+#endif
   // .0 clear everything
   _segment_pids.clear();
   _segment_labels.clear();
@@ -104,6 +102,8 @@ void NCut::Segment(base::PointFCloudConstPtr cloud) {
     pids[i] = static_cast<int>(i);
   }
   _cloud_obstacles = base::PointFCloudPtr(new base::PointFCloud(*cloud, pids));
+  AINFO << "cloud obstacle size in ncut segment is "
+        << _cloud_obstacles->size();
 #ifdef DEBUG_NCUT
   ADEBUG << "segment enter ... input cloud size " << cloud->size();
 // visualize_points(pids);
@@ -116,34 +116,38 @@ void NCut::Segment(base::PointFCloudConstPtr cloud) {
 #ifdef DEBUG_NCUT
   // visualize_segments_from_points(_cluster_points);
   ADEBUG << "super pixels " << _cluster_points.size();
+  AINFO << "super pixels done " << omp_get_wtime() - start_t;
+  start_t = omp_get_wtime();
 #endif
-  // LOG_DEBUG << "super pixels done " << omp_get_wtime() - start_t;
-  // start_t = omp_get_wtime();
+
   // .2 precompute skeleton and bbox
   PrecomputeAllSkeletonAndBbox();
-  // LOG_DEBUG << "precompute skeleton and bbox done " << omp_get_wtime() -
-  // start_t;
-  // start_t = omp_get_wtime();
+#ifdef DEBUG_NCUT
+  AINFO << "precompute skeleton and bbox done " << omp_get_wtime() - start_t;
+  start_t = omp_get_wtime();
+#endif
   // .3 grach cut
-  // std::vector< std::vector<int> > segment_clusters;
-  // std::vector< std::string > segment_labels;
-  // NormalizedCut(_ncuts_stop_threshold, true, segment_clusters,
-  // segment_labels);
-  // LOG_DEBUG << "normalized_cut done, #segments " << segment_clusters.size()
-  //        << ", time: " << omp_get_wtime() - start_t;
-  // start_t = omp_get_wtime();
+  std::vector<std::vector<int>> segment_clusters;
+  std::vector<std::string> segment_labels;
+  NormalizedCut(_ncuts_stop_threshold, true, &segment_clusters,
+                &segment_labels);
+#ifdef DEBUG_NCUT
+  AINFO << "normalized_cut done, #segments " << segment_clusters.size()
+        << ", time: " << omp_get_wtime() - start_t;
+  start_t = omp_get_wtime();
+#endif
   // .4 _segment_pids;
-  // for (size_t i = 0; i < segment_clusters.size(); ++i) {
-  //    std::vector<int> pids;
-  //    GetClustersPids(segment_clusters[i], pids);
-  //   if (pids.size() > 0) {
-  //        _segment_pids.push_back(pids);
-  //        _segment_labels.push_back(segment_labels[i]);
-  //        NcutBoundingBox box;
-  //        get_component_bounding_box(segment_clusters[i], box);
-  //        _segment_bbox.push_back(box);
-  //    }
-  // }
+  for (size_t i = 0; i < segment_clusters.size(); ++i) {
+    std::vector<int> pids;
+    GetClustersPids(segment_clusters[i], &pids);
+    if (pids.size() > 0) {
+      _segment_pids.push_back(pids);
+      _segment_labels.push_back(segment_labels[i]);
+      NcutBoundingBox box;
+      GetComponentBoundingBox(segment_clusters[i], &box);
+      _segment_bbox.push_back(box);
+    }
+  }
 }
 
 void NCut::SuperPixelsFloodFill(base::PointFCloudConstPtr cloud, float radius,
@@ -281,8 +285,8 @@ void NCut::GetPatchFeature(const MatrixXf &points, MatrixXf *features_in) {
     for (int r = 0; r < patch.rows; ++r) {
       for (int c = 0; c < patch.cols; ++c) {
         float val = patch.at<float>(r, c);
-        features.coeffRef(i, p++) =
-            static_cast<float>((isnan(val) || isinf(val)) ? 1.e-50 : val);
+        features.coeffRef(i, p++) = static_cast<float>(
+            (std::isnan(val) || std::isinf(val)) ? 1.e-50 : val);
         // features.coeffRef(i, p++) = patch.at<float>(r, c);
       }
     }
@@ -366,7 +370,7 @@ void NCut::NormalizedCut(float ncuts_threshold, bool use_classifier,
     curr = job_stack.top();
     job_stack.pop();
 #ifdef DEBUG_NCUT
-    LOG_DEBUG << "curr size " << curr->size();
+    AINFO << "curr size " << curr->size();
 // visualize_cluster(curr);
 #endif
     std::string seg_label;
@@ -396,8 +400,8 @@ void NCut::NormalizedCut(float ncuts_threshold, bool use_classifier,
       }
       double cost = GetMinNcuts(my_weights, curr, seg1, seg2);
 #ifdef DEBUG_NCUT
-      LOG_DEBUG << "N cut cost is " << cost << ", seg1 size " << seg1->size()
-                << ", seg2 size " << seg2->size();
+      AINFO << "N cut cost is " << cost << ", seg1 size " << seg1->size()
+            << ", seg2 size " << seg2->size();
       if (curr->size() < 50) {
         std::cout << "seg1: ";
         for (size_t i = 0; i < seg1->size(); ++i) {
@@ -733,7 +737,7 @@ void NCut::GetClustersPids(const std::vector<int> &cids,
 int NCut::GetComponentBoundingBox(const std::vector<int> &cluster_ids,
                                   NcutBoundingBox *box_in) {
   NcutBoundingBox &box = *box_in;
-  if (cluster_ids.size() == 0) {
+  if (cluster_ids.empty()) {
     return 0;
   }
   int cid = cluster_ids[0];

@@ -37,7 +37,7 @@ UDPBridgeReceiverComponent<T>::~UDPBridgeReceiverComponent() {
 
 template <typename T>
 bool UDPBridgeReceiverComponent<T>::Init() {
-  AINFO << "UDP bridge receiver init, startin..";
+  AINFO << "UDP bridge receiver init, startin...";
   apollo::bridge::UDPBridgeReceiverRemoteInfo udp_bridge_remote;
   if (!this->GetProtoConfig(&udp_bridge_remote)) {
     AINFO << "load udp bridge component proto param failed";
@@ -46,36 +46,38 @@ bool UDPBridgeReceiverComponent<T>::Init() {
   bind_port_ = udp_bridge_remote.bind_port();
   proto_name_ = udp_bridge_remote.proto_name();
   topic_name_ = udp_bridge_remote.topic_name();
-  AINFO << "UDP Bridge remote port is: " << bind_port_;
-  AINFO << "UDP Bridge for Proto is: " << proto_name_;
+  enable_timeout_ = udp_bridge_remote.enable_timeout();
+  ADEBUG << "UDP Bridge remote port is: " << bind_port_;
+  ADEBUG << "UDP Bridge for Proto is: " << proto_name_;
   writer_ = node_->CreateWriter<T>(topic_name_.c_str());
 
   if (!InitSession((uint16_t)bind_port_)) {
     return false;
   }
-  AINFO << "initialize session successful.";
+  ADEBUG << "initialize session successful.";
   MsgDispatcher();
   return true;
 }
 
 template <typename T>
 bool UDPBridgeReceiverComponent<T>::InitSession(uint16_t port) {
-  return listener_->Initialize(this,
-    &UDPBridgeReceiverComponent<T>::MsgHandle, port);
+  return listener_->Initialize(this, &UDPBridgeReceiverComponent<T>::MsgHandle,
+                               port);
 }
 
 template <typename T>
 void UDPBridgeReceiverComponent<T>::MsgDispatcher() {
-  AINFO << "msg dispatcher start successful.";
+  ADEBUG << "msg dispatcher start successful.";
   listener_->Listen();
 }
 
 template <typename T>
-BridgeProtoDiserializedBuf<T> *UDPBridgeReceiverComponent<T>::
-  CreateBridgeProtoBuf(const BridgeHeader &header) {
+BridgeProtoDiserializedBuf<T>
+    *UDPBridgeReceiverComponent<T>::CreateBridgeProtoBuf(
+        const BridgeHeader &header) {
   if (IsTimeout(header.GetTimeStamp())) {
     typename std::vector<BridgeProtoDiserializedBuf<T> *>::iterator itor =
-      proto_list_.begin();
+        proto_list_.begin();
     for (; itor != proto_list_.end();) {
       if ((*itor)->IsTheProto(header)) {
         BridgeProtoDiserializedBuf<T> *tmp = *itor;
@@ -112,8 +114,11 @@ bool UDPBridgeReceiverComponent<T>::IsProtoExist(const BridgeHeader &header) {
   return false;
 }
 
-template<typename T>
+template <typename T>
 bool UDPBridgeReceiverComponent<T>::IsTimeout(double time_stamp) {
+  if (enable_timeout_ == false) {
+    return false;
+  }
   double cur_time = apollo::common::time::Clock::NowInSeconds();
   if (cur_time < time_stamp) {
     return true;
@@ -131,9 +136,10 @@ bool UDPBridgeReceiverComponent<T>::MsgHandle(int fd) {
   int bytes = 0;
   int total_recv = 2 * FRAME_SIZE;
   char total_buf[2 * FRAME_SIZE] = {0};
-  bytes = static_cast<int>(recvfrom(fd, total_buf,
-    total_recv, 0, (struct sockaddr*)&client_addr, &sock_len));
-  AINFO << "total recv " << bytes;
+  bytes =
+      static_cast<int>(recvfrom(fd, total_buf, total_recv, 0,
+                                (struct sockaddr *)&client_addr, &sock_len));
+  ADEBUG << "total recv " << bytes;
   if (bytes <= 0 || bytes > total_recv) {
     return false;
   }
@@ -141,30 +147,33 @@ bool UDPBridgeReceiverComponent<T>::MsgHandle(int fd) {
   size_t offset = 0;
   memcpy(header_flag, total_buf, HEADER_FLAG_SIZE);
   if (strcmp(header_flag, BRIDGE_HEADER_FLAG) != 0) {
+    AINFO << "header flag not match!";
     return false;
   }
   offset += sizeof(BRIDGE_HEADER_FLAG) + 1;
 
-  char header_size_buf[sizeof(size_t) + 1] = {0};
+  char header_size_buf[sizeof(hsize) + 1] = {0};
   const char *cursor = total_buf + offset;
-  memcpy(header_size_buf, cursor, sizeof(size_t));
-  size_t header_size = *(reinterpret_cast<size_t*>(header_size_buf));
+  memcpy(header_size_buf, cursor, sizeof(hsize));
+  hsize header_size = *(reinterpret_cast<hsize *>(header_size_buf));
   if (header_size > FRAME_SIZE) {
+    AINFO << "header size is more than FRAME_SIZE!";
     return false;
   }
-  offset += sizeof(size_t) + 1;
+  offset += sizeof(hsize) + 1;
 
   BridgeHeader header;
   size_t buf_size = header_size - offset;
   cursor = total_buf + offset;
   if (!header.Diserialize(cursor, buf_size)) {
+    AINFO << "header diserialize failed!";
     return false;
   }
 
-  AINFO << "proto name : " << header.GetMsgName().c_str();
-  AINFO << "proto sequence num: " << header.GetMsgID();
-  AINFO << "proto total frames: " << header.GetTotalFrames();
-  AINFO << "proto frame index: " << header.GetIndex();
+  ADEBUG << "proto name : " << header.GetMsgName().c_str();
+  ADEBUG << "proto sequence num: " << header.GetMsgID();
+  ADEBUG << "proto total frames: " << header.GetTotalFrames();
+  ADEBUG << "proto frame index: " << header.GetIndex();
 
   std::lock_guard<std::mutex> lock(mutex_);
   BridgeProtoDiserializedBuf<T> *proto_buf = CreateBridgeProtoBuf(header);
@@ -179,9 +188,28 @@ bool UDPBridgeReceiverComponent<T>::MsgHandle(int fd) {
   if (proto_buf->IsReadyDiserialize()) {
     auto pb_msg = std::make_shared<T>();
     proto_buf->Diserialized(pb_msg);
-    AINFO << "pb data1 : " <<pb_msg->engine_rpm();
     writer_->Write(pb_msg);
+    RemoveInvalidBuf(proto_buf->GetMsgID());
     RemoveItem(&proto_list_, proto_buf);
+  }
+  return true;
+}
+
+template <typename T>
+bool UDPBridgeReceiverComponent<T>::RemoveInvalidBuf(uint32_t msg_id) {
+  if (msg_id == 0) {
+    return false;
+  }
+  typename std::vector<BridgeProtoDiserializedBuf<T> *>::iterator itor =
+      proto_list_.begin();
+  for (; itor != proto_list_.end();) {
+    if ((*itor)->GetMsgID() < msg_id) {
+      BridgeProtoDiserializedBuf<T> *tmp = *itor;
+      FREE_POINTER(tmp);
+      itor = proto_list_.erase(itor);
+      continue;
+    }
+    ++itor;
   }
   return true;
 }

@@ -56,32 +56,31 @@ function print_usage() {
   ${BLUE}version${NONE}: display current commit and date
   ${BLUE}push${NONE}: pushes the images to Docker hub
   ${BLUE}gen${NONE}: generate a docker release image
-  ${BLUE}ota_gen${NONE}: generate a ota docker release image
+  ${BLUE}ota_gen${NONE}: generate an ota docker release image
   "
 }
 
 function start_build_docker() {
   docker ps --format "{{.Names}}" | grep apollo_dev_$USER 1>/dev/null 2>&1
-  if [ $? != 0 ]; then    
-    # If Google is reachable, we fetch the docker image directly. 
+  if [ $? != 0 ]; then
+    # If Google is reachable, we fetch the docker image directly.
     if ping -q -c 1 -W 1 www.google.com 1>/dev/null 2>&1; then
       opt=""
-    # If Google is unreachable but Baidu reachable, we fetch the docker image from China. 
-    elif ping -q -c 1 -W 1 www.baidu.com 1>/dev/null 2>&1; then
-      opt="-C"
-    # If Baidu is unreachable, we use local images. 
     else
-      opt="-l"
+      ping -q -c 1 -W 1 www.baidu.com 1>/dev/null 2>&1
+      # If Baidu is unreachable, we use local images.
+      if [ $? -ne 0 ]; then
+        opt="-l"
+      fi
     fi
-    #echo ${opt}
     bash docker/scripts/dev_start.sh ${opt}
   fi
 }
 
 function gen_docker() {
   IMG="apolloauto/apollo:run-${MACHINE_ARCH}-20181017_1330"
-  RELEASE_DIR=${HOME}/.cache/apollo_release
-  APOLLO_DIR="${RELEASE_DIR}/apollo"
+  CACHE_ROOT_DIR="${DIR}/.cache"
+  APOLLO_DIR="${CACHE_ROOT_DIR}/apollo_release/apollo"
 
   if [ ! -d "${APOLLO_DIR}" ]; then
     echo "Release directory does not exist!"
@@ -103,7 +102,7 @@ function gen_docker() {
       -d \
       --name apollo_release \
       --net host \
-      -v $HOME/.cache:/root/mnt \
+      -v ${CACHE_ROOT_DIR}:/root/mnt \
       -w /apollo \
       "$IMG"
 
@@ -113,16 +112,11 @@ function gen_docker() {
     RELEASE_TGZ="apollo_release.tar.gz"
     SEC_RELEASE_TGZ="sec_apollo_release.tar.gz"
 
-    if [ -e "$HOME/.cache/$RELEASE_TGZ" ]; then
-      rm $HOME/.cache/$RELEASE_TGZ
-    fi
-
-    if [ -e "$HOME/.cache/$SEC_RELEASE_TGZ" ]; then
-      rm $HOME/.cache/$SEC_RELEASE_TGZ
-    fi
+    [ -e "${CACHE_ROOT_DIR}/${RELEASE_TGZ}" ] && rm -f "${CACHE_ROOT_DIR}/${RELEASE_TGZ}"
+    [ -e "${CACHE_ROOT_DIR}/${SEC_RELEASE_TGZ}" ] && rm -f "${CACHE_ROOT_DIR}/${SEC_RELEASE_TGZ}"
 
     # generate security release package
-    tar czf $HOME/.cache/$RELEASE_TGZ -C $HOME/.cache apollo_release
+    tar czf "${CACHE_ROOT_DIR}/${RELEASE_TGZ}" -C "${CACHE_ROOT_DIR}" apollo_release
     python modules/tools/ota/create_sec_package.py
     docker exec apollo_release cp /root/mnt/${SEC_RELEASE_TGZ} /root
   fi
@@ -163,6 +157,7 @@ case $1 in
     gen_docker
     ;;
   *)
+    # TODO(storypku): fix user account issue
     docker exec -u $USER apollo_dev_$USER bash -c "./apollo.sh $@"
     ;;
 esac

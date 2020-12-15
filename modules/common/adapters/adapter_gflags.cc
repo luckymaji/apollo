@@ -36,9 +36,18 @@ DEFINE_string(pad_topic, "/apollo/control/pad",
               "control pad message topic name");
 DEFINE_string(control_command_topic, "/apollo/control",
               "control command topic name");
+DEFINE_string(control_preprocessor_topic, "/apollo/control/preprocessor",
+              "control preprocessor topic name");
+DEFINE_string(control_local_view_topic, "/apollo/control/localview",
+              "control local view topic name");
+DEFINE_string(control_core_command_topic, "/apollo/control/controlcore",
+              "control command core algorithm topic name");
 DEFINE_string(pointcloud_topic,
               "/apollo/sensor/lidar128/compensator/PointCloud2",
               "pointcloud topic name");
+DEFINE_string(pointcloud_16_topic,
+              "/apollo/sensor/lidar16/compensator/PointCloud2",
+              "16 beam Lidar pointcloud topic name");
 DEFINE_string(pointcloud_16_front_up_topic,
               "/apollo/sensor/lidar16/front/up/compensator/PointCloud2",
               "Front up 16 beam Lidar pointcloud topic name");
@@ -80,6 +89,8 @@ DEFINE_string(lidar_16_fusion_compensator_topic,
 DEFINE_string(lidar_128_topic, "/apollo/sensor/lidar128/PointCloud2",
               "128 beam lidar topic name");
 DEFINE_string(prediction_topic, "/apollo/prediction", "prediction topic name");
+DEFINE_string(prediction_container_topic, "/apollo/prediction_container",
+              "prediction container submodule topic name");
 DEFINE_string(perception_obstacle_topic, "/apollo/perception/obstacles",
               "perception obstacle topic name");
 DEFINE_string(drive_event_topic, "/apollo/drive_event",
@@ -109,6 +120,12 @@ DEFINE_string(system_status_topic, "/apollo/monitor/system_status",
 DEFINE_string(static_info_topic, "/apollo/monitor/static_info",
               "Static info topic name");
 DEFINE_string(mobileye_topic, "/apollo/sensor/mobileye", "mobileye topic name");
+DEFINE_string(smartereye_obstacles_topic, "/apollo/sensor/smartereye/obstacles",
+              "smartereye obstacles topic name");
+DEFINE_string(smartereye_lanemark_topic, "/apollo/sensor/smartereye/lanemark",
+              "smartereye lanemark topic name");
+DEFINE_string(smartereye_image_topic, "/apollo/sensor/smartereye/image",
+              "smartereye image topic name");
 DEFINE_string(delphi_esr_topic, "/apollo/sensor/delphi_esr",
               "delphi esr radar topic name");
 DEFINE_string(conti_radar_topic, "/apollo/sensor/conti_radar",
@@ -152,6 +169,21 @@ DEFINE_string(camera_right_fisheye_compressed_topic,
 DEFINE_string(camera_rear_6mm_compressed_topic,
               "/apollo/sensor/camera/rear_6mm/image/compressed",
               "front 6mm camera compressed topic name");
+DEFINE_string(camera_front_6mm_video_compressed_topic,
+              "/apollo/sensor/camera/front_6mm/video/compressed",
+              "front 6mm camera video compressed topic name");
+DEFINE_string(camera_front_12mm_video_compressed_topic,
+              "/apollo/sensor/camera/front_12mm/video/compressed",
+              "front 12mm camera video compressed topic name");
+DEFINE_string(camera_left_fisheye_video_compressed_topic,
+              "/apollo/sensor/camera/left_fisheye/video/compressed",
+              "left fisheye camera video compressed topic name");
+DEFINE_string(camera_right_fisheye_video_compressed_topic,
+              "/apollo/sensor/camera/right_fisheye/video/compressed",
+              "right fisheye camera video compressed topic name");
+DEFINE_string(camera_rear_6mm_video_compressed_topic,
+              "/apollo/sensor/camera/rear_6mm/video/compressed",
+              "front 6mm camera video compressed topic name");
 DEFINE_string(gnss_rtk_obs_topic, "/apollo/sensor/gnss/rtk_obs",
               "Gnss rtk observation topic name");
 DEFINE_string(gnss_rtk_eph_topic, "/apollo/sensor/gnss/rtk_eph",
@@ -177,6 +209,9 @@ DEFINE_string(v2x_obstacle_topic, "/apollo/v2x/obstacles",
               "v2x obstacles topic name");
 DEFINE_string(v2x_trafficlight_topic, "/apollo/v2x/traffic_light",
               "v2x trafficlight topic name");
+DEFINE_string(storytelling_topic, "/apollo/storytelling",
+              "Storytelling topic.");
+
 // For pandora.
 DEFINE_string(pandora_pointcloud_topic,
               "/apollo/sensor/pandora/hesai40/PointCloud2",
@@ -209,3 +244,11 @@ DEFINE_string(tf_topic, "/tf", "Transform topic.");
 DEFINE_string(tf_static_topic, "/tf_static", "Transform static topic.");
 DEFINE_string(recorder_status_topic, "/apollo/data/recorder/status",
               "Recorder status topic.");
+DEFINE_string(latency_recording_topic, "/apollo/common/latency_records",
+              "Latency recording topic.");
+DEFINE_string(latency_reporting_topic, "/apollo/common/latency_reports",
+              "Latency reporting topic.");
+// value: velodyne128, velodyne64, velodyne16
+DEFINE_string(lidar_model_version, "",
+              "It determins which lidar model(16 ,64 or 128) to load, \
+              if not to set, the model will be loaded by the sensor name.");

@@ -2,6 +2,7 @@ syntax = "proto2";
 
 package apollo.dreamview;
 
+import "modules/canbus/proto/chassis.proto";
 import "modules/common/monitor_log/proto/monitor_log.proto";
 import "modules/common/proto/pnc_point.proto";
 import "modules/perception/proto/perception_obstacle.proto";
@@ -14,6 +15,9 @@ message PolygonPoint {
   optional double x = 1;
   optional double y = 2;
   optional double z = 3 [default = 0.0];
+
+  // Gaussian probability information
+  optional apollo.common.GaussianInfo gaussian_info = 4;
 }
 
 // Next-id: 3
@@ -68,7 +72,7 @@ message Decision {
   optional apollo.routing.ChangeLaneType change_lane_type = 12;
 }
 
-// Next-id: 36
+// Next-id: 38
 message Object {
   // ID
   optional string id = 1;  // primary identifier for each object
@@ -118,6 +122,8 @@ message Object {
   optional double steering_percentage = 25;
   optional double steering_angle = 26;
   optional double steering_ratio = 27;
+  optional int32 battery_percentage = 36;
+  optional apollo.canbus.Chassis.GearPosition gear_location = 37;
   enum DisengageType {
     DISENGAGE_NONE = 0;
     DISENGAGE_UNKNOWN = 1;
@@ -142,7 +148,8 @@ message Object {
   };
 
   optional Type type = 29;  // obstacle type
-  optional apollo.perception.PerceptionObstacle.SubType sub_type = 34; // obstacle sub-type
+  // obstacle sub-type
+  optional apollo.perception.PerceptionObstacle.SubType sub_type = 34;
   repeated Prediction prediction = 30;
 
   // perception confidence level. Range: [0,1]
@@ -197,7 +204,7 @@ message Notification {
   optional apollo.common.monitor.MonitorMessageItem item = 2;
 }
 
-// Next-id: 25
+// Next-id: 29
 message SimulationWorld {
   // Timestamp in milliseconds
   optional double timestamp = 1;
@@ -211,7 +218,7 @@ message SimulationWorld {
   // Autonomous driving cars
   optional Object auto_driving_car = 4;
 
-  // Traffic light status
+  // Planning signal
   optional Object traffic_signal = 5;
 
   // Routing paths
@@ -267,4 +274,10 @@ message SimulationWorld {
 
   // Shadow localization
   optional Object shadow_localization = 26;
+
+  // Perception detected signals
+  repeated Object perceived_signal = 27;
+
+  // A map from a story name to whether it is on
+  map<string, bool> stories = 28;
 }
